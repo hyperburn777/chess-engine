@@ -1,55 +1,65 @@
 import chess
 from engine.eval import evaluate
 
-INF = 999999
+class ChessSearch:
+    INF = 999999
 
-def minimax(board, depth, alpha, beta, maximizing):
+    def __init__(self, model=None):
+        self.model = model
 
-    if depth == 0 or board.is_game_over():
-        return evaluate(board), None
+    def _get_evaluation(self, board):
+        if self.model:
+            return self.model.evaluate(board)
 
-    best_move = None
+        return evaluate(board)
 
-    moves = list(board.legal_moves)
+    def minimax(self, board, depth, alpha, beta, maximizing):
 
-    if maximizing:
-        best_score = -INF
+        if depth == 0 or board.is_game_over():
+            return evaluate(board), None
 
-        for move in moves:
-            board.push(move)
-            score, _ = minimax(board, depth - 1, alpha, beta, False)
-            board.pop()
+        best_move = None
 
-            if score > best_score:
-                best_score = score
-                best_move = move
+        moves = list(board.legal_moves)
 
-            alpha = max(alpha, score)
-            if beta <= alpha:
-                break
+        if maximizing:
+            best_score = -self.INF
 
-        return best_score, best_move
+            for move in moves:
+                board.push(move)
+                score, _ = self.minimax(board, depth - 1, alpha, beta, False)
+                board.pop()
 
-    else:
-        best_score = INF
+                if score > best_score:
+                    best_score = score
+                    best_move = move
 
-        for move in moves:
-            board.push(move)
-            score, _ = minimax(board, depth - 1, alpha, beta, True)
-            board.pop()
+                alpha = max(alpha, score)
+                if beta <= alpha:
+                    break
 
-            if score < best_score:
-                best_score = score
-                best_move = move
+            return best_score, best_move
 
-            beta = min(beta, score)
-            if beta <= alpha:
-                break
+        else:
+            best_score = self.INF
 
-        return best_score, best_move
+            for move in moves:
+                board.push(move)
+                score, _ = self.minimax(board, depth - 1, alpha, beta, True)
+                board.pop()
+
+                if score < best_score:
+                    best_score = score
+                    best_move = move
+
+                beta = min(beta, score)
+                if beta <= alpha:
+                    break
+
+            return best_score, best_move
 
 
-def find_best_move(board, depth=3):
-    maximizing = board.turn == chess.WHITE
-    _, move = minimax(board, depth, -INF, INF, maximizing)
-    return move
+    def find_best_move(self, board, depth=3):
+        maximizing = board.turn == chess.WHITE
+        _, move = self.minimax(board, depth, -self.INF, self.INF, maximizing)
+        return move
