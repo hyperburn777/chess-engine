@@ -41,6 +41,7 @@ data/
 logs/
 *.csv
 training_data/
+ml/plots/*
 
 # PyTorch and ML artifacts
 lightning_logs/
