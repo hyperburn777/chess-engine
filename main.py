@@ -1,6 +1,7 @@
 import chess
 import chess.pgn
 import torch
+import time
 
 from ml.model import NNUE
 from engine.search import ChessSearch
@@ -33,8 +34,10 @@ while not board.is_game_over():
     print()
 
     if board.turn == chess.WHITE:
+        start_time = time.perf_counter()
         ai_move = engine.find_best_move(board, depth=5)
-        print("Engine plays:", ai_move)
+        end_time = time.perf_counter()
+        print(f"Engine plays: {ai_move} | time: {end_time - start_time}s")
         board.push(ai_move)
         curr_node = curr_node.add_variation(ai_move)
 
