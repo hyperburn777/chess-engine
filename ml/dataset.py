@@ -65,13 +65,41 @@ def extract_halfkp(board, perspective):
     return feats
 
 def collate_fn(batch):
-    white = [b["white"] for b in batch]
-    black = [b["black"] for b in batch]
 
-    stm = torch.stack([b["stm"] for b in batch])
-    target = torch.stack([b["target"] for b in batch])
+    white_offsets = []
+    black_offsets = []
 
-    return white, black, stm, target
+    white_flat = []
+    black_flat = []
+
+    stm = []
+    target = []
+
+    for i, b in enumerate(batch):
+
+        w = b["white"]
+        b_ = b["black"]
+
+        w = torch.as_tensor(w, dtype=torch.long)
+        b_ = torch.as_tensor(b_, dtype=torch.long)
+
+        white_flat.append(w)
+        black_flat.append(b_)
+
+        white_offsets.append(torch.full((w.numel(),), i, dtype=torch.long))
+        black_offsets.append(torch.full((b_.numel(),), i, dtype=torch.long))
+
+        stm.append(torch.as_tensor(b["stm"], dtype=torch.float32))
+        target.append(torch.as_tensor(b["target"], dtype=torch.float32))
+
+    return {
+        "white_idx": torch.cat(white_flat),
+        "black_idx": torch.cat(black_flat),
+        "white_batch": torch.cat(white_offsets),
+        "black_batch": torch.cat(black_offsets),
+        "stm": torch.stack(stm),
+        "target": torch.stack(target),
+    }
 
 class ChessDataset(Dataset):
     def __init__(self, data, max_samples=None):

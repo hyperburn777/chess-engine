@@ -50,3 +50,5 @@ runs/
 
 # OS-specific files
 Thumbs.db
+
+*.pgn
