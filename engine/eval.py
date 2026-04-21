@@ -62,4 +62,4 @@ class ChessModelEvaluator:
 
             score = output.item() * 1000.0
 
-        return int(score)
+        return score
