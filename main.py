@@ -8,12 +8,7 @@ from engine.search import ChessSearch
 
 board = chess.Board()
 
-<<<<<<< HEAD
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-=======
-model = NNUE()
-checkpoint = torch.load("ml/model_new_checkpoint.pth")
->>>>>>> andy_accumulator
 
 model = NNUE()
 # checkpoint = torch.load("ml/model_weights.pth")

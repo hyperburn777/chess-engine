@@ -10,7 +10,6 @@ class ChessSearch:
         self.model = model
         self.move_cache = set()
 
-<<<<<<< HEAD
     def _get_evaluation(self, board):
         if chess.polyglot.zobrist_hash(board) in self.move_cache:
             return 0
@@ -24,17 +23,6 @@ class ChessSearch:
 
         if depth == 0 or board.is_game_over():
             return self._get_evaluation(board), None
-=======
-    def minimax(self, board, depth, alpha, beta, maximizing, acc=None):
-
-        if depth == 0 or board.is_game_over():
-
-            if self.model is None:
-                return evaluate(board), None
-
-            stm = 1.0 if board.turn == chess.WHITE else 0.0
-            return self.model.evaluate_acc(acc, stm), None
->>>>>>> andy_accumulator
 
         best_move = None
         moves = list(board.legal_moves)
