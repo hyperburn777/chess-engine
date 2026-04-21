@@ -1,4 +1,7 @@
 import chess
+import torch
+
+from ml.dataset import extract_halfkp
 
 PIECE_VALUES = {
     chess.PAWN: 100,

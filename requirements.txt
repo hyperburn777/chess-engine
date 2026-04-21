@@ -1,3 +1,6 @@
 python-chess
 torch
 numpy
+datasets
+tqdm
+matplotlib
