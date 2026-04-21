@@ -1,4 +1,6 @@
 import chess
+import chess.polyglot
+
 from engine.eval import evaluate
 
 class ChessSearch:
@@ -6,8 +8,12 @@ class ChessSearch:
 
     def __init__(self, model=None):
         self.model = model
+        self.move_cache = set()
 
     def _get_evaluation(self, board):
+        if chess.polyglot.zobrist_hash(board) in self.move_cache:
+            return 0
+
         if self.model:
             return self.model.evaluate(board)
 
@@ -16,7 +22,7 @@ class ChessSearch:
     def minimax(self, board, depth, alpha, beta, maximizing):
 
         if depth == 0 or board.is_game_over():
-            return evaluate(board), None
+            return self._get_evaluation(board), None
 
         best_move = None
 
@@ -58,6 +64,12 @@ class ChessSearch:
 
             return best_score, best_move
 
+    def register_board(self, board):
+        z_key = chess.polyglot.zobrist_hash(board)
+        self.move_cache.add(z_key)
+
+    def clear_cache(self):
+        self.move_cache.clear()
 
     def find_best_move(self, board, depth=3):
         maximizing = board.turn == chess.WHITE
