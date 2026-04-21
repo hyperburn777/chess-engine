@@ -5,11 +5,15 @@ import time
 
 from ml.model import NNUE
 from engine.search import ChessSearch
-from engine.eval import ChessModelEvaluator
 
 board = chess.Board()
 
+<<<<<<< HEAD
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+=======
+model = NNUE()
+checkpoint = torch.load("ml/model_new_checkpoint.pth")
+>>>>>>> andy_accumulator
 
 model = NNUE()
 # checkpoint = torch.load("ml/model_weights.pth")
@@ -18,10 +22,9 @@ model = NNUE()
 model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
 # model.load_state_dict(torch.load("ml/nnue_checkpoint.pt"))
 
-evaluator = ChessModelEvaluator(model=model, device="cuda" if torch.cuda.is_available() else "cpu")
-engine = ChessSearch(model=evaluator)
+engine = ChessSearch(model=model)
 
-heurisitic_engine = ChessSearch()
+heurisitic_engine = ChessSearch(model=None)
 
 pgn_game = chess.pgn.Game() # root
 pgn_game.headers["White"] = "NNUE Engine"
@@ -40,6 +43,8 @@ while not board.is_game_over():
         ai_move = engine.find_best_move(board, depth=5)
         end_time = time.perf_counter()
         print(f"Engine plays: {ai_move} | time: {end_time - start_time}s")
+        board.push(ai_move)
+        curr_node = curr_node.add_variation(ai_move)
 
     else:
         ai_move = heurisitic_engine.find_best_move(board, depth=3)
