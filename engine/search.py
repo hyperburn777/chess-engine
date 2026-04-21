@@ -25,27 +25,15 @@ class ChessSearch:
             return self._get_evaluation(board), None
 
         best_move = None
+
         moves = list(board.legal_moves)
 
         if maximizing:
             best_score = -self.INF
 
             for move in moves:
-                if self.model is None:
-                    board.push(move)
-                    score, _ = self.minimax(board, depth - 1, alpha, beta, False)
-                else:
-                    new_acc = self.model.update_accumulator(acc, board, move)
-                    board.push(move)
-                    score, _ = self.minimax(
-                        board,
-                        depth - 1,
-                        alpha,
-                        beta,
-                        False,
-                        new_acc
-                    )
-
+                board.push(move)
+                score, _ = self.minimax(board, depth - 1, alpha, beta, False)
                 board.pop()
 
                 if score > best_score:
@@ -62,22 +50,8 @@ class ChessSearch:
             best_score = self.INF
 
             for move in moves:
-
-                if self.model is None:
-                    board.push(move)
-                    score, _ = self.minimax(board, depth - 1, alpha, beta, True)
-                else:
-                    new_acc = self.model.update_accumulator(acc, board, move)
-                    board.push(move)
-                    score, _ = self.minimax(
-                        board,
-                        depth - 1,
-                        alpha,
-                        beta,
-                        True,
-                        new_acc
-                    )
-
+                board.push(move)
+                score, _ = self.minimax(board, depth - 1, alpha, beta, True)
                 board.pop()
 
                 if score < best_score:
@@ -98,22 +72,6 @@ class ChessSearch:
         self.move_cache.clear()
 
     def find_best_move(self, board, depth=3):
-
         maximizing = board.turn == chess.WHITE
-
-        if self.model is None:
-            _, move = self.minimax(board, depth, -self.INF, self.INF, maximizing)
-            return move
-
-        acc = self.model.init_accumulator(board)
-
-        _, move = self.minimax(
-            board,
-            depth,
-            -self.INF,
-            self.INF,
-            maximizing,
-            acc
-        )
-
+        _, move = self.minimax(board, depth, -self.INF, self.INF, maximizing)
         return move
