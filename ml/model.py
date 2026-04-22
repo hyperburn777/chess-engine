@@ -1,45 +1,24 @@
 import torch
 import torch.nn as nn
 
-NUM_FEATURES = 40960
-EMB_DIM = 2048
-
 class NNUE(nn.Module):
-    def __init__(self, num_features=40960):
+    def __init__(self, feature_dim=40960, hidden_dim=256):
         super().__init__()
+        # We use a simpler "Half-KA" or "Half-KP" feature set for speed
+        self.feature_transformer = nn.EmbeddingBag(feature_dim, hidden_dim, mode='sum')
+        self.activation = nn.Hardtanh(0, 1)
+        
+        self.output_layer = nn.Sequential(
+            nn.Linear(hidden_dim * 2, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Tanh() # Maps output to [-1, 1] range for minimax
+        )
 
-        self.white_emb = nn.Embedding(num_features, 256)
-        self.black_emb = nn.Embedding(num_features, 256)
-
-        self.fc1 = nn.Linear(512, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 32)
-        self.out = nn.Linear(32, 1)
-
-        self.act = nn.ReLU()
-
-    def segment_sum(self, emb, batch_idx, batch_size):
-        out = torch.zeros(batch_size, emb.size(1), device=emb.device)
-        return out.index_add_(0, batch_idx, emb)
-
-    def forward(self, white_idx, black_idx, white_batch, black_batch, stm):
-
-        B = stm.size(0)
-
-        w_emb = self.white_emb(white_idx)
-        b_emb = self.black_emb(black_idx)
-
-        # 🔥 vectorized accumulation (NO LOOP)
-        w = self.segment_sum(w_emb, white_batch, B)
-        b = self.segment_sum(b_emb, black_batch, B)
-
-        x = torch.cat([w, b], dim=1)
-
-        flip = (stm == 0).view(-1, 1)
-        x_flipped = torch.cat([b, w], dim=1)
-        x = torch.where(flip, x_flipped, x)
-
-        x = self.act(self.fc1(x))
-        x = self.act(self.fc2(x))
-        x = self.act(self.fc3(x))
-        return self.out(x)
+    def forward(self, stm_idx, stm_off, nstm_idx, nstm_off):
+        # EmbeddingBag magic: It sums the vectors for each "bag" (board)
+        stm = self.activation(self.feature_transformer(stm_idx, stm_off))
+        nstm = self.activation(self.feature_transformer(nstm_idx, nstm_off))
+        
+        combined = torch.cat([stm, nstm], dim=1)
+        return self.output_layer(combined)
