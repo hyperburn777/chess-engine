@@ -73,5 +73,5 @@ class ChessSearch:
 
     def find_best_move(self, board, depth=3):
         maximizing = board.turn == chess.WHITE
-        _, move = self.minimax(board, depth, -self.INF, self.INF, True)
+        _, move = self.minimax(board, depth, -self.INF, self.INF, maximizing)
         return move

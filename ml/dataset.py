@@ -47,20 +47,45 @@ PIECE_MAP = {
 }
 
 # using the same formula provided by the stockfish site
-def halfkp_index(piece, piece_square, king_square):
+#see https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html#halfkp
+PIECE_MAP = {
+    chess.PAWN: 0,
+    chess.KNIGHT: 1,
+    chess.BISHOP: 2,
+    chess.ROOK: 3,
+    chess.QUEEN: 4,
+}
+
+# using the same formula provided by the stockfish site
+def halfkp_index(piece, piece_square, king_square, perspective): # perspective is who is "us"
     piece_type = PIECE_MAP[piece.piece_type]
-    piece_color = 0 if piece.color == chess.WHITE else 1
+    piece_color = 0 if piece.color == perspective else 1
     p_idx = piece_type * 2 + piece_color
     return piece_square + (p_idx + king_square * 10) * 64
 
+def flip_square(sq):
+    file = sq % 8
+    rank = sq // 8
+    return (7 - rank) * 8 + file
+
 def extract_halfkp(board, perspective):
-    king_sq = board.king(perspective)
     feats = []
+
+    king_sq = board.king(perspective)
+
+    if perspective == chess.BLACK:
+        king_sq = flip_square(king_sq)
 
     for sq, piece in board.piece_map().items():
         if piece.piece_type == chess.KING:
             continue
-        feats.append(halfkp_index(piece, sq, king_sq))
+
+        if perspective == chess.BLACK:
+            sq = flip_square(sq)
+
+        feats.append(
+            halfkp_index(piece, sq, king_sq, perspective)
+        )
 
     return feats
 

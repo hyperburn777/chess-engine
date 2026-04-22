@@ -26,40 +26,27 @@ class ChessModelEvaluator:
         self.model = model
         self.device = device
         self.model.to(self.device)
-        self.model.eval()  # Set to evaluation mode (disables dropout/batchnorm)
+        self.model.eval()
 
     def evaluate(self, board):
-
-        # 1. Extract features
+        # 1. Extract feature indices
         white_feats = extract_halfkp(board, chess.WHITE)
         black_feats = extract_halfkp(board, chess.BLACK)
         stm = 1.0 if board.turn == chess.WHITE else 0.0
 
-        # 2. Convert to tensors (FLAT, no batch dimension yet)
-        white_idx = torch.tensor(white_feats, dtype=torch.long, device=self.device)
-        black_idx = torch.tensor(black_feats, dtype=torch.long, device=self.device)
+        # 2. Build dense feature tensors (batch size = 1)
+        white_tensor = torch.zeros(1, 40960, dtype=torch.float32, device=self.device)
+        black_tensor = torch.zeros(1, 40960, dtype=torch.float32, device=self.device)
 
-        # 3. Build "batch index" (everything belongs to sample 0)
-        white_batch = torch.zeros_like(white_idx, dtype=torch.long, device=self.device)
-        black_batch = torch.zeros_like(black_idx, dtype=torch.long, device=self.device)
+        white_tensor[0, white_feats] = 1.0
+        black_tensor[0, black_feats] = 1.0
 
-        # 4. Side to move tensor (batch size = 1)
-        stm_t = torch.tensor([stm], dtype=torch.float32, device=self.device)
+        # 3. Side-to-move tensor (shape: [1, 1])
+        stm_tensor = torch.tensor([[stm]], dtype=torch.float32, device=self.device)
 
-        # 5. Add fake batch dimension logic inside model call
-        white_idx = white_idx
-        black_idx = black_idx
-
-        # 6. Inference
+        # 4. Inference
         with torch.no_grad():
-            output = self.model(
-                white_idx,
-                black_idx,
-                white_batch,
-                black_batch,
-                stm_t
-            )
-
+            output = self.model(white_tensor, black_tensor, stm_tensor)
             score = output.item() * 1000.0
 
         return score

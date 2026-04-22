@@ -15,7 +15,7 @@ board = chess.Board(FEN)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = NNUE()
-checkpoint = torch.load("ml/model_new_checkpoint_newkp_best.pth", map_location=device)
+checkpoint = torch.load("ml/nnue_orig.pt", map_location=device)
 model.load_state_dict(checkpoint["model_state_dict"])
 
 evaluator = ChessModelEvaluator(
@@ -42,7 +42,7 @@ while not board.is_game_over():
 
     if board.turn == chess.BLACK:
         start_time = time.perf_counter()
-        ai_move = engine.find_best_move(board, depth=6)
+        ai_move = engine.find_best_move(board, depth=5)
         end_time = time.perf_counter()
         print(f"NNUE Engine plays: {ai_move} | time: {end_time - start_time}s")
 
