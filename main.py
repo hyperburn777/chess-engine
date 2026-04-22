@@ -11,16 +11,16 @@ board = chess.Board()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = NNUE()
+model = NNUE().to(device)
 # checkpoint = torch.load("ml/model_weights.pth")
-checkpoint = torch.load("ml/model_new_checkpoint.pth")
+checkpoint = torch.load("ml/nnue_checkpoints/chess_model_step_50000.pt")
 
 model.load_state_dict(checkpoint["model_state_dict"])
 # model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
 # model.load_state_dict(torch.load("ml/nnue_checkpoint.pt"))
 
-evaluator = ChessModelEvaluator(model=model, device="cuda" if torch.cuda.is_available() else "cpu")
-engine = ChessSearch(model=evaluator)
+# evaluator = ChessModelEvaluator(model=model, device="cuda" if torch.cuda.is_available() else "cpu")
+engine = ChessSearch(model=model)
 
 heurisitic_engine = ChessSearch()
 

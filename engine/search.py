@@ -1,10 +1,13 @@
+import torch
+
 import chess
 import chess.polyglot
 
-from engine.eval import evaluate
+from engine.eval import evaluate, model_evaluate_board
 
 class ChessSearch:
     INF = 999999
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def __init__(self, model=None):
         self.model = model
@@ -15,7 +18,8 @@ class ChessSearch:
             return 0
 
         if self.model:
-            return self.model.evaluate(board)
+            # return self.model.evaluate(board)
+            return model_evaluate_board(self.model, board, self.device)
 
         return evaluate(board)
 
