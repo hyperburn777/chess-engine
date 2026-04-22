@@ -37,7 +37,10 @@ class ChessSearch:
 
             for move in moves:
                 board.push(move)
-                score, _ = self.minimax(board, depth - 1, alpha, beta, False)
+                if chess.polyglot.zobrist_hash(board) in self.move_cache:
+                    score = 0
+                else:
+                    score, _ = self.minimax(board, depth - 1, alpha, beta, False)
                 board.pop()
 
                 if score > best_score:
@@ -55,7 +58,10 @@ class ChessSearch:
 
             for move in moves:
                 board.push(move)
-                score, _ = self.minimax(board, depth - 1, alpha, beta, True)
+                if chess.polyglot.zobrist_hash(board) in self.move_cache:
+                    score = 0
+                else:
+                    score, _ = self.minimax(board, depth - 1, alpha, beta, True)
                 board.pop()
 
                 if score < best_score:
