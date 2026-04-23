@@ -24,68 +24,42 @@ class ChessSearch:
 
         return evaluate(board)
 
-    def minimax(self, board, depth, alpha, beta, maximizing):
-
-        if depth == 0 or board.is_game_over():
+    def negmax(self, board, depth, alpha, beta):
+        if board.is_game_over() or depth == 0:
+            # Since this is already POV, we return it directly
             return self._get_evaluation(board), None
 
         best_move = None
+        best_score = -self.INF
+        
+        for move in list(board.legal_moves):
+            board.push(move)
 
-        moves = list(board.legal_moves)
+            board_hash = chess.polyglot.zobrist_hash(board)
+            if board.is_checkmate():
+                score = -2
+            elif board_hash in self.move_cache:
+                score = 0
+            elif board_hash in self.lookup:
+                score = self.lookup[board_hash]
+            else:
+                # Recursive call: negate the result and swap alpha/beta
+                score, _ = self.negmax(board, depth - 1, -beta, -alpha)
+            
+            score = -score
+            board.pop()
 
-        if maximizing:
-            best_score = -self.INF
+            if score > best_score:
+                best_score = score
+                best_move = move
 
-            for move in moves:
-                board.push(move)
-                hash = chess.polyglot.zobrist_hash(board)
-                if board.is_checkmate():
-                    score = 2
-                elif hash in self.move_cache:
-                    score = 0
-                elif hash in self.lookup:
-                    score = self.lookup[hash]
-                else: 
-                    score, _ = self.minimax(board, depth - 1, alpha, beta, False)
-                self.lookup[hash] = score
-                board.pop()
-
-                if score > best_score:
-                    best_score = score
-                    best_move = move
-
-                alpha = max(alpha, score)
-                if beta <= alpha:
-                    break
-
-            return best_score, best_move
-
-        else:
-            best_score = self.INF
-
-            for move in moves:
-                board.push(move)
-                hash = chess.polyglot.zobrist_hash(board)
-                if board.is_checkmate():
-                    score = -2
-                elif hash in self.move_cache:
-                    score = 0
-                elif hash in self.lookup:
-                    score = self.lookup[hash]
-                else: 
-                    score, _ = self.minimax(board, depth - 1, alpha, beta, True)
-                self.lookup[hash] = score
-                board.pop()
-
-                if score < best_score:
-                    best_score = score
-                    best_move = move
-
-                beta = min(beta, score)
-                if beta <= alpha:
-                    break
-
-            return best_score, best_move
+            alpha = max(alpha, score)
+            if alpha >= beta:
+                break
+        
+        board_hash = chess.polyglot.zobrist_hash(board)
+        self.lookup[board_hash] = best_score
+        return best_score, best_move
 
     def register_board(self, board):
         z_key = chess.polyglot.zobrist_hash(board)
@@ -96,6 +70,5 @@ class ChessSearch:
         self.lookup.clear()
 
     def find_best_move(self, board, depth=3):
-        maximizing = board.turn == chess.WHITE
-        _, move = self.minimax(board, depth, -self.INF, self.INF, maximizing)
+        _, move = self.negmax(board, depth, -self.INF, self.INF)
         return move
