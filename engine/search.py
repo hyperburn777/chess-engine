@@ -12,11 +12,12 @@ class ChessSearch:
     def __init__(self, model=None):
         self.model = model
         self.move_cache = set()
+        self.lookup = dict()
 
     def _get_evaluation(self, board):
         if chess.polyglot.zobrist_hash(board) in self.move_cache:
             return 0
-
+        
         if self.model:
             # return self.model.evaluate(board)
             return model_evaluate_board(self.model, board, self.device)
@@ -37,10 +38,16 @@ class ChessSearch:
 
             for move in moves:
                 board.push(move)
-                if chess.polyglot.zobrist_hash(board) in self.move_cache:
+                hash = chess.polyglot.zobrist_hash(board)
+                if board.is_checkmate():
+                    score = 2
+                elif hash in self.move_cache:
                     score = 0
-                else:
+                elif hash in self.lookup:
+                    score = self.lookup[hash]
+                else: 
                     score, _ = self.minimax(board, depth - 1, alpha, beta, False)
+                self.lookup[hash] = score
                 board.pop()
 
                 if score > best_score:
@@ -58,10 +65,16 @@ class ChessSearch:
 
             for move in moves:
                 board.push(move)
-                if chess.polyglot.zobrist_hash(board) in self.move_cache:
+                hash = chess.polyglot.zobrist_hash(board)
+                if board.is_checkmate():
+                    score = -2
+                elif hash in self.move_cache:
                     score = 0
-                else:
+                elif hash in self.lookup:
+                    score = self.lookup[hash]
+                else: 
                     score, _ = self.minimax(board, depth - 1, alpha, beta, True)
+                self.lookup[hash] = score
                 board.pop()
 
                 if score < best_score:
@@ -80,6 +93,7 @@ class ChessSearch:
 
     def clear_cache(self):
         self.move_cache.clear()
+        self.lookup.clear()
 
     def find_best_move(self, board, depth=3):
         maximizing = board.turn == chess.WHITE
