@@ -12,7 +12,6 @@ class ChessSearch:
     def __init__(self, model=None):
         self.model = model
         self.move_cache = set()
-        self.lookup = dict()
 
     def _get_evaluation(self, board):
         if chess.polyglot.zobrist_hash(board) in self.move_cache:
@@ -29,19 +28,19 @@ class ChessSearch:
             # Since this is already POV, we return it directly
             return self._get_evaluation(board), None
 
-        best_move = None
+        moves = list(board.legal_moves)
+
+        best_move = moves[0]
         best_score = -self.INF
         
-        for move in list(board.legal_moves):
+        for move in moves:
             board.push(move)
 
             board_hash = chess.polyglot.zobrist_hash(board)
             if board.is_checkmate():
-                score = -2
+                score = -self.INF
             elif board_hash in self.move_cache:
                 score = 0
-            elif board_hash in self.lookup:
-                score = self.lookup[board_hash]
             else:
                 # Recursive call: negate the result and swap alpha/beta
                 score, _ = self.negmax(board, depth - 1, -beta, -alpha)
@@ -58,7 +57,6 @@ class ChessSearch:
                 break
         
         board_hash = chess.polyglot.zobrist_hash(board)
-        self.lookup[board_hash] = best_score
         return best_score, best_move
 
     def register_board(self, board):
@@ -67,7 +65,6 @@ class ChessSearch:
 
     def clear_cache(self):
         self.move_cache.clear()
-        self.lookup.clear()
 
     def find_best_move(self, board, depth=3):
         _, move = self.negmax(board, depth, -self.INF, self.INF)
