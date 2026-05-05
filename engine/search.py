@@ -1,3 +1,4 @@
+import time
 import torch
 
 import chess
@@ -12,6 +13,7 @@ class ChessSearch:
     def __init__(self, model=None):
         self.model = model
         self.move_cache = set()
+        self.lookup = dict()
 
     def _get_evaluation(self, board):
         if chess.polyglot.zobrist_hash(board) in self.move_cache:
@@ -24,39 +26,41 @@ class ChessSearch:
         return evaluate(board)
 
     def negmax(self, board, depth, alpha, beta):
+        lookup_hash = (chess.polyglot.zobrist_hash(board), depth)
+        if lookup_hash in self.lookup:
+            return self.lookup[lookup_hash]
+        
         if board.is_game_over() or depth == 0:
             # Since this is already POV, we return it directly
-            return self._get_evaluation(board), None
+            best_score, best_move = self._get_evaluation(board), None
+        else:
+            moves = list(board.legal_moves)
 
-        moves = list(board.legal_moves)
-
-        best_move = moves[0]
-        best_score = -self.INF
-        
-        for move in moves:
-            board.push(move)
-
-            board_hash = chess.polyglot.zobrist_hash(board)
-            if board.is_checkmate():
-                score = -self.INF
-            elif board_hash in self.move_cache:
-                score = 0
-            else:
-                # Recursive call: negate the result and swap alpha/beta
-                score, _ = self.negmax(board, depth - 1, -beta, -alpha)
+            best_move = moves[0]
+            best_score = -self.INF
             
-            score = -score
-            board.pop()
+            for move in moves:
+                board.push(move)
 
-            if score > best_score:
-                best_score = score
-                best_move = move
+                board_hash = chess.polyglot.zobrist_hash(board)
+                if board_hash in self.move_cache:
+                    score = 0
+                else:
+                    # Recursive call: negate the result and swap alpha/beta
+                    score, _ = self.negmax(board, depth - 1, -beta, -alpha)
+                
+                score = -score
+                board.pop()
 
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                break
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+
+                alpha = max(alpha, score)
+                if alpha >= beta:
+                    break
         
-        board_hash = chess.polyglot.zobrist_hash(board)
+        self.lookup[lookup_hash] = (best_score, best_move)
         return best_score, best_move
 
     def register_board(self, board):
@@ -69,3 +73,13 @@ class ChessSearch:
     def find_best_move(self, board, depth=3):
         _, move = self.negmax(board, depth, -self.INF, self.INF)
         return move
+    
+    def find_best_move_tl(self, board, limit):
+        depth = 1
+        best_move = None
+        start = time.time()
+        while time.time() - start < limit:
+            best_move = self.find_best_move(board, depth)
+            depth += 1
+        
+        return best_move

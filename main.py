@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = NNUE().to(device)
 # checkpoint = torch.load("ml/model_weights.pth")
-checkpoint = torch.load("ml/nnue_checkpoints/chess_model_final_1_pass.pt", map_location=device)
+checkpoint = torch.load("ml/nnue_checkpoints/chess_model_final.pt", map_location=device)
 
 model.load_state_dict(checkpoint["model_state_dict"])
 # model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
@@ -37,12 +37,23 @@ while not board.is_game_over():
 
     if board.turn == chess.WHITE:
         start_time = time.perf_counter()
-        ai_move = engine.find_best_move(board, depth=3)
+        ai_move = engine.find_best_move(board, depth=4)
+        # ai_move = engine.find_best_move_tl(board, 10)
         end_time = time.perf_counter()
         print(f"Engine plays: {ai_move} | time: {end_time - start_time}s")
 
     else:
         ai_move = heurisitic_engine.find_best_move(board, depth=3)
+        # ai_move = engine.find_best_move(board, depth=4)
+
+        # while True:
+        #     move_str = input("Enter move (e.g., e2e4): ")
+        #     ai_move = chess.Move.from_uci(move_str)
+        #     if ai_move in board.legal_moves:
+        #         break
+        #     else:
+        #         print("That move isn't legal right now!")
+
         print("Heuristic Engine plays:", ai_move)
     
     if board.is_capture(ai_move):

@@ -5,6 +5,8 @@ from ml.dataset import extract_halfkp
 
 @torch.no_grad()
 def model_evaluate_board(model, board, device):
+    if board.is_checkmate():
+        return -999999
     model.eval()
     
     # 1. Extract indices using your existing logic
@@ -46,6 +48,8 @@ PIECE_VALUES = {
 }
 
 def evaluate(board):
+    if board.is_checkmate():
+        return -999999
     score = 0
 
     for piece_type in PIECE_VALUES:
