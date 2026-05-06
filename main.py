@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = NNUE().to(device)
 # checkpoint = torch.load("ml/model_weights.pth")
-checkpoint = torch.load("ml/nnue_checkpoints/chess_model_final.pt", map_location=device)
+checkpoint = torch.load("ml/nnue_checkpoints/chess_model_large_final.pt", map_location=device)
 
 model.load_state_dict(checkpoint["model_state_dict"])
 # model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
