@@ -73,10 +73,12 @@ def extract_halfkp(board, perspective):
 
 def transform_row(row):
     # 1. Score logic stays the same...
-    if row.get('cp') is not None:
-        score = np.tanh(row['cp'] / 400.0)
+    if row.get('cp') is None:
+        sign = 1 if row['mate'] > 0 else -1
+        cp = sign * 1000 + (100 - abs(row['mate']))
     else:
-        score = 0.0
+        cp = max(min(row['cp'], 1000), -1000)
+    score = np.tanh(cp / 400.0)
 
     board = chess.Board(row['fen'])
     
