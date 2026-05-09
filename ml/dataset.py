@@ -75,7 +75,7 @@ def transform_row(row):
     # 1. Score logic stays the same...
     if row.get('cp') is None:
         sign = 1 if row['mate'] > 0 else -1
-        cp = sign * 1000 + (100 - abs(row['mate']))
+        cp = sign * (1000 + (100 - abs(row['mate'])))
     else:
         cp = max(min(row['cp'], 1000), -1000)
     score = np.tanh(cp / 400.0)
