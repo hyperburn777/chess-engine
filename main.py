@@ -17,7 +17,7 @@ else:
 
 model = NNUE().to(device)
 # checkpoint = torch.load("ml/model_weights.pth")
-checkpoint = torch.load("ml/nnue_checkpoints/chess_model_step_110000.pt", map_location=device)
+checkpoint = torch.load("ml/nnue_checkpoints/chess_model_step_100000.pt", map_location=device)
 
 model.load_state_dict(checkpoint["model_state_dict"])
 # model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
@@ -42,7 +42,7 @@ while not board.is_game_over():
 
     if board.turn == chess.WHITE:
         start_time = time.perf_counter()
-        ai_move = engine.find_best_move(board, depth=4)
+        ai_move = engine.find_best_move(board, depth=6)
         # ai_move = engine.find_best_move_tl(board, 10)
         end_time = time.perf_counter()
         print(f"Engine plays: {ai_move} | time: {end_time - start_time}s")
