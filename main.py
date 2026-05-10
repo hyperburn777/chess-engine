@@ -8,11 +8,16 @@ from engine.search import ChessSearch
 
 board = chess.Board()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+elif torch.backends.mps.is_available():
+    device = torch.device('mps')
+else:
+    device = torch.device('cpu')
 
 model = NNUE().to(device)
 # checkpoint = torch.load("ml/model_weights.pth")
-checkpoint = torch.load("ml/nnue_checkpoints/chess_model_large_final.pt", map_location=device)
+checkpoint = torch.load("ml/nnue_checkpoints/chess_model_step_110000.pt", map_location=device)
 
 model.load_state_dict(checkpoint["model_state_dict"])
 # model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
@@ -43,7 +48,7 @@ while not board.is_game_over():
         print(f"Engine plays: {ai_move} | time: {end_time - start_time}s")
 
     else:
-        ai_move = heurisitic_engine.find_best_move(board, depth=3)
+        ai_move = heurisitic_engine.find_best_move(board, depth=5)
         # ai_move = engine.find_best_move(board, depth=4)
 
         # while True:

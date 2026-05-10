@@ -21,6 +21,14 @@ class NNUE(nn.Module):
         # EmbeddingBag magic: It sums the vectors for each "bag" (board)
         stm = self.activation(self.feature_transformer(stm_idx, stm_off))
         nstm = self.activation(self.feature_transformer(nstm_idx, nstm_off))
-        
+
         combined = torch.cat([stm, nstm], dim=1)
         return self.output_layer(combined)
+
+    @torch.no_grad()
+    def evaluate_acc(self, stm_acc, nstm_acc):
+        # stm_acc / nstm_acc are pre-activation sums of shape (hidden_dim,)
+        stm = self.activation(stm_acc).unsqueeze(0)
+        nstm = self.activation(nstm_acc).unsqueeze(0)
+        combined = torch.cat([stm, nstm], dim=1)
+        return self.output_layer(combined).item()
