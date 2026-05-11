@@ -1,5 +1,6 @@
 import copy
 import time
+import threading
 import torch
 
 import chess
@@ -36,6 +37,7 @@ class ChessSearch:
         self.lookup = dict()
         self.best_moves = dict()  # zobrist_hash -> best move found at this position (any depth)
         self.accumulator = NNUEAccumulator(model) if model is not None else None
+        self.stop_event = None
 
         # Output layer is tiny; running it on CPU avoids MPS/CUDA kernel-launch
         # and .item() sync overhead per leaf, which dominates with quiescence.
@@ -93,7 +95,10 @@ class ChessSearch:
 
     QSEARCH_MAX_PLY = 6  # safety cap so quiescence can't explode on tactical positions
 
-    def quiescence(self, board, alpha, beta, ply=0):
+    def quiescence(self, board, alpha, beta, ply=0, stop_event=None):
+        if stop_event is not None and stop_event.is_set():
+            return self._get_evaluation(board)
+
         # Stand-pat alpha-beta over captures only. Resolves the "horizon effect"
         # so the static eval at search leaves is taken on quiet positions.
         # Captures are irreversible, so we don't need a move_cache (repetition) check here.
@@ -119,12 +124,15 @@ class ChessSearch:
         moves.sort(key=lambda m: self._capture_score(board, m), reverse=True)
 
         for move in moves:
+            if stop_event is not None and stop_event.is_set():
+                break
+
             if self.accumulator is not None:
                 self.accumulator.push(board, move)
             else:
                 board.push(move)
 
-            score = -self.quiescence(board, -beta, -alpha, ply + 1)
+            score = -self.quiescence(board, -beta, -alpha, ply + 1, stop_event=stop_event)
 
             if self.accumulator is not None:
                 self.accumulator.pop(board)
@@ -140,7 +148,10 @@ class ChessSearch:
 
         return best_score
 
-    def negmax(self, board, depth, alpha, beta, z_hash=None):
+    def negmax(self, board, depth, alpha, beta, z_hash=None, stop_event=None):
+        if stop_event is not None and stop_event.is_set():
+            return 0, None
+
         # Caller may pass a pre-computed hash (from the parent's post-push hash),
         # so we don't re-walk the board to hash it again.
         if z_hash is None:
@@ -170,7 +181,7 @@ class ChessSearch:
 
         if depth == 0:
             # Quiescence value depends on the (alpha, beta) window, so don't TT-cache it.
-            return self.quiescence(board, alpha, beta), None
+            return self.quiescence(board, alpha, beta, stop_event=stop_event), None
 
         # Generate legal moves once; replaces the expensive board.is_game_over() call.
         moves = list(board.legal_moves)
@@ -186,6 +197,9 @@ class ChessSearch:
         best_score = -self.INF
 
         for move in moves:
+            if stop_event is not None and stop_event.is_set():
+                break
+
             if self.accumulator is not None:
                 self.accumulator.push(board, move)
             else:
@@ -196,7 +210,7 @@ class ChessSearch:
                 # Repeating a previously-played position = draw.
                 score = 0
             else:
-                score, _ = self.negmax(board, depth - 1, -beta, -alpha, z_hash=child_hash)
+                score, _ = self.negmax(board, depth - 1, -beta, -alpha, z_hash=child_hash, stop_event=stop_event)
             score = -score
 
             if self.accumulator is not None:
@@ -232,18 +246,68 @@ class ChessSearch:
     def clear_cache(self):
         self.move_cache.clear()
 
-    def find_best_move(self, board, depth=3):
+    def find_best_move(self, board, depth=3, stop_event=None):
         if self.accumulator is not None:
             self.accumulator.init_from_board(board)
-        _, move = self.negmax(board, depth, -self.INF, self.INF)
+        _, move = self.negmax(board, depth, -self.INF, self.INF, stop_event=stop_event)
         return move
     
-    def find_best_move_tl(self, board, limit):
+    def find_best_move_tl(self, board, limit, stop_event=None):
         depth = 1
         best_move = None
         start = time.time()
-        while time.time() - start < limit:
-            best_move = self.find_best_move(board, depth)
+        deadline = start + max(0.0, limit)
+        min_iteration_window = 0.2
+
+        while time.time() < deadline:
+            if stop_event is not None and stop_event.is_set():
+                break
+
+            remaining = deadline - time.time()
+            # Avoid launching a much deeper iteration with only a tiny slice of
+            # time left; this is the main cause of long "no bestmove yet" stalls
+            # in UCI clients that expect a quick response after movetime.
+            if depth > 1 and remaining < min_iteration_window:
+                break
+            timer = None
+            if stop_event is not None and remaining > 0:
+                timer = threading.Timer(remaining, stop_event.set)
+                timer.daemon = True
+                timer.start()
+
+            try:
+                move = self.find_best_move(board, depth, stop_event=stop_event)
+            finally:
+                if timer is not None:
+                    timer.cancel()
+
+            elapsed_ms = int((time.time() - start) * 1000)
+            print(f"info depth {depth} time {elapsed_ms}", flush=True)
+
+            if stop_event is not None and stop_event.is_set():
+                break
+
+            if move is not None:
+                best_move = move
             depth += 1
-        
+
+        return best_move
+
+    def find_best_move_depth(self, board, max_depth, stop_event=None):
+        best_move = None
+        start = time.time()
+        for depth in range(1, max_depth + 1):
+            if stop_event is not None and stop_event.is_set():
+                break
+
+            move = self.find_best_move(board, depth, stop_event=stop_event)
+            if stop_event is not None and stop_event.is_set():
+                break
+
+            elapsed_ms = int((time.time() - start) * 1000)
+            print(f"info depth {depth} time {elapsed_ms}", flush=True)
+
+            if move is not None:
+                best_move = move
+
         return best_move
