@@ -10,7 +10,10 @@ Taking inspiration from:
 
 To run this project
 - first run 'pip install -r requirements.txt'
-- to run the game, 'python main.py' where moves are made like e2e4/e4 or Nf3, etc
+- the dataset can be found at https://huggingface.co/datasets/mateuszgrzyb/lichess-stockfish-normalized
+- to train the model, run 'train.ipynb', which should save the model at ml/nnue_checkpoints/chess_model_final.pt
+- to run the game, 'python main.py' where moves are made like e2e4
+- make sure to update the model used at torch.load to that which has been trained
 
 To run the engine on lichess
 - update the functions for 'uci.py'
