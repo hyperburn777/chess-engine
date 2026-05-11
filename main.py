@@ -8,23 +8,25 @@ from engine.search import ChessSearch
 
 board = chess.Board()
 
-<<<<<<< HEAD
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-=======
-model = NNUE()
-checkpoint = torch.load("ml/model_new_checkpoint.pth")
->>>>>>> andy_accumulator
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+elif torch.backends.mps.is_available():
+    device = torch.device('mps')
+else:
+    device = torch.device('cpu')
 
-model = NNUE()
+model = NNUE().to(device)
 # checkpoint = torch.load("ml/model_weights.pth")
+checkpoint = torch.load("ml/nnue_checkpoints/chess_model_step_100000.pt", map_location=device)
 
-# model.load_state_dict(checkpoint["model_state_dict"])
-model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
+model.load_state_dict(checkpoint["model_state_dict"])
+# model.load_state_dict(torch.load("ml/model_weights.pth", map_location=device))
 # model.load_state_dict(torch.load("ml/nnue_checkpoint.pt"))
 
+# evaluator = ChessModelEvaluator(model=model, device="cuda" if torch.cuda.is_available() else "cpu")
 engine = ChessSearch(model=model)
 
-heurisitic_engine = ChessSearch(model=None)
+heurisitic_engine = ChessSearch()
 
 pgn_game = chess.pgn.Game() # root
 pgn_game.headers["White"] = "NNUE Engine"
@@ -40,14 +42,23 @@ while not board.is_game_over():
 
     if board.turn == chess.WHITE:
         start_time = time.perf_counter()
-        ai_move = engine.find_best_move(board, depth=5)
+        ai_move = engine.find_best_move(board, depth=6)
+        # ai_move = engine.find_best_move_tl(board, 10)
         end_time = time.perf_counter()
         print(f"Engine plays: {ai_move} | time: {end_time - start_time}s")
-        board.push(ai_move)
-        curr_node = curr_node.add_variation(ai_move)
 
     else:
-        ai_move = heurisitic_engine.find_best_move(board, depth=3)
+        ai_move = heurisitic_engine.find_best_move(board, depth=5)
+        # ai_move = engine.find_best_move(board, depth=4)
+
+        # while True:
+        #     move_str = input("Enter move (e.g., e2e4): ")
+        #     ai_move = chess.Move.from_uci(move_str)
+        #     if ai_move in board.legal_moves:
+        #         break
+        #     else:
+        #         print("That move isn't legal right now!")
+
         print("Heuristic Engine plays:", ai_move)
     
     if board.is_capture(ai_move):
